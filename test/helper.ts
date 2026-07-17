@@ -1,5 +1,9 @@
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import fs from "node:fs/promises";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const basePath = path.join(__dirname, "..", "src", "drizzle");
 
@@ -8,7 +12,8 @@ export const getMirationFileNames = async () => {
 
   const migrationFileNames = dirNames.map(async (dirName) => {
     const filePath = path.join(basePath, dirName, "test_seeds");
-    const exists = await fs.exists(filePath);
+
+    const exists = await fs.access(filePath).then(() => true).catch(() => false);
     if (!exists) {
       return [];
     }
@@ -29,7 +34,7 @@ export const getMirationFileNames = async () => {
     return {
       name: dirName,
       path: path.join(basePath, dirName, "migration.sql"),
-      filePaths: subFilesPaths[index],
+      filePaths: subFilesPaths[index] || [],
     };
   });
 };

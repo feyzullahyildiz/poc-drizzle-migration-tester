@@ -1,5 +1,5 @@
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { getMirationFileNames } from "./helper";
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { getMirationFileNames } from "@test/helper";
 import {
   PostgreSqlContainer,
   StartedPostgreSqlContainer,
@@ -14,25 +14,23 @@ describe("Migration Test", async () => {
       .withDatabase("test_db")
       .withUsername("test_user")
       .withPassword("test_password")
-      
-      //.withReuse()
+      .withReuse()
       .start();
-    // container = await new PostgreSqlContainer("postgres:16-alpine")
-    //   .withDatabase("test_db")
-    //   .withUsername("test_user")
-    //   .withPassword("test_password")
-    //   .withReuse()
-    //   .start();
-
     console.log("beforeAll after postgresql");
-
-    const paths = await getMirationFileNames();
-    // console.log("paths", paths);
   });
   afterAll(async () => {
     console.log("afterAll before postgresql");
-    // await container.stop();
+    await container.stop();
     console.log("afterAll after postgresql");
+  });
+
+  describe("migrations", async () => {
+    const paths = await getMirationFileNames();
+    // console.log("paths", paths);
+
+    test("2 + 2", () => {
+      expect(2 + 2).toBe(4);
+    });
   });
 
   test("2 + 2", () => {
