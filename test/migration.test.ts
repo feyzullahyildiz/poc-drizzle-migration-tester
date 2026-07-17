@@ -1,39 +1,58 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { getMirationFileNames } from "@test/helper";
+import { getMatrix, getMigrationFileNames } from "@test/helper";
 import {
   PostgreSqlContainer,
   StartedPostgreSqlContainer,
 } from "@testcontainers/postgresql/build/postgresql-container";
+import { Client } from "pg";
+
+import fs from "node:fs/promises";
 
 describe("Migration Test", async () => {
   let container: StartedPostgreSqlContainer;
+  let client: Client;
+
+  const migrations = await getMigrationFileNames();
+  const matrix = getMatrix(migrations.map((p) => p.filePaths.length));
 
   beforeAll(async () => {
-    console.log("beforeAll before postgresql");
     container = await new PostgreSqlContainer("postgres:16-alpine")
       .withDatabase("test_db")
       .withUsername("test_user")
       .withPassword("test_password")
       .withReuse()
       .start();
-    console.log("beforeAll after postgresql");
+
+    client = new Client({
+      connectionString: container.getConnectionUri(),
+    });
+    await client.connect();
   });
   afterAll(async () => {
-    console.log("afterAll before postgresql");
+    await client.end();
     await container.stop();
-    console.log("afterAll after postgresql");
   });
 
-  describe("migrations", async () => {
-    const paths = await getMirationFileNames();
-    // console.log("paths", paths);
+  for (let scenarioIndex = 0; scenarioIndex < matrix.length; scenarioIndex++) {
+    const scenarioIndexArray = matrix[scenarioIndex]!;
+    describe(`Migration ${scenarioIndex}`, () => {
+      beforeAll(async () => {
+        // await client.connect();
+        await client.query(`DROP SCHEMA public CASCADE; CREATE SCHEMA public;`);
+      });
+      for (let i = 0; i < scenarioIndexArray.length; i++) {
+        test(`MIGRATION ${i}`, async () => {
+          const m = migrations[i]!;
+          await client.query(await fs.readFile(m.path, "utf-8"));
+          const filePathIndex = scenarioIndexArray[i];
+          if (filePathIndex !== null) {
+            const filePath = m.filePaths[filePathIndex!]!;
+            await client.query(await fs.readFile(filePath, "utf-8"));
+          }
 
-    test("2 + 2", () => {
-      expect(2 + 2).toBe(4);
+          // const filePath = paths[i]!.filePaths[scenarioIndex];
+        });
+      }
     });
-  });
-
-  test("2 + 2", () => {
-    expect(2 + 2).toBe(4);
-  });
+  }
 });
