@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate --name"
   },
   "devDependencies": {
     "@types/bun": "latest",
