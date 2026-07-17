@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "db:generate": "drizzle-kit generate --name",
-    "db:generate:empty": "drizzle-kit generate --name",
+    "db:generate:empty": "drizzle-kit generate --custom --name",
     "test": "vitest",
     "test:run": "vitest run"
   },

@@ -35,7 +35,7 @@ describe("Migration Test", async () => {
 
   for (let scenarioIndex = 0; scenarioIndex < matrix.length; scenarioIndex++) {
     const scenarioIndexArray = matrix[scenarioIndex]!;
-    describe(`Migration ${scenarioIndex}`, () => {
+    describe(`Scenario ${scenarioIndex}`, () => {
       beforeAll(async () => {
         // await client.connect();
         await client.query(`DROP SCHEMA public CASCADE; CREATE SCHEMA public;`);
