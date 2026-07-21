@@ -70,6 +70,9 @@ describe("Migration Test", async () => {
           test(`MIGRATION ${i}`, async () => {
             const m = migrations[i]!;
             await client.query(await fs.readFile(m.path, "utf-8"));
+            if (m.testSeeds.length > 0) {
+              await client.query(await fs.readFile(m.testSeeds[0]!, "utf-8"));
+            }
           });
         } else {
           test(`MIGRATION ${i} + ERROR: ${errorFileName}`, async () => {
