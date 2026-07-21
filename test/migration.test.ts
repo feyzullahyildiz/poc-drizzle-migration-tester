@@ -1,11 +1,11 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { getMatrix, getMigrationFileNames } from "@test/helper";
+import { getMatrix, getErrorMatrix, getMigrationFileNames } from "@test/helper";
 import {
   PostgreSqlContainer,
   StartedPostgreSqlContainer,
 } from "@testcontainers/postgresql/build/postgresql-container";
 import { Client } from "pg";
-
+import path from "node:path";
 import fs from "node:fs/promises";
 
 describe("Migration Test", async () => {
@@ -13,7 +13,8 @@ describe("Migration Test", async () => {
   let client: Client;
 
   const migrations = await getMigrationFileNames();
-  const matrix = getMatrix(migrations.map((p) => p.filePaths.length));
+  const matrix = getMatrix(migrations.map((p) => p.testSeeds.length));
+  const errorMatrix = getErrorMatrix(migrations.map((p) => p.testErrors.length));
 
   beforeAll(async () => {
     container = await new PostgreSqlContainer("postgres:16-alpine")
@@ -37,7 +38,6 @@ describe("Migration Test", async () => {
     const scenarioIndexArray = matrix[scenarioIndex]!;
     describe(`Scenario ${scenarioIndex}`, () => {
       beforeAll(async () => {
-        // await client.connect();
         await client.query(`DROP SCHEMA public CASCADE; CREATE SCHEMA public;`);
       });
       for (let i = 0; i < scenarioIndexArray.length; i++) {
@@ -46,12 +46,40 @@ describe("Migration Test", async () => {
           await client.query(await fs.readFile(m.path, "utf-8"));
           const filePathIndex = scenarioIndexArray[i];
           if (filePathIndex !== null) {
-            const filePath = m.filePaths[filePathIndex!]!;
+            const filePath = m.testSeeds[filePathIndex!]!;
             await client.query(await fs.readFile(filePath, "utf-8"));
           }
-
-          // const filePath = paths[i]!.filePaths[scenarioIndex];
         });
+      }
+    });
+  }
+
+  for (let errorIdx = 0; errorIdx < errorMatrix.length; errorIdx++) {
+    const scenario = errorMatrix[errorIdx]!;
+    const errorMigration = migrations[scenario.migrationIndex]!;
+    const errorFilePath = errorMigration.testErrors[scenario.errorFileIndex]!;
+    const errorFileName = path.basename(errorFilePath, ".sql");
+
+    describe(`Error Scenario: ${errorMigration.name}/${errorFileName}`, () => {
+      beforeAll(async () => {
+        await client.query(`DROP SCHEMA public CASCADE; CREATE SCHEMA public;`);
+      });
+
+      for (let i = 0; i <= scenario.migrationIndex; i++) {
+        if (i < scenario.migrationIndex) {
+          test(`MIGRATION ${i}`, async () => {
+            const m = migrations[i]!;
+            await client.query(await fs.readFile(m.path, "utf-8"));
+          });
+        } else {
+          test(`MIGRATION ${i} + ERROR: ${errorFileName}`, async () => {
+            const m = migrations[i]!;
+            await client.query(await fs.readFile(m.path, "utf-8"));
+            await expect(
+              client.query(await fs.readFile(errorFilePath, "utf-8"))
+            ).rejects.toThrow();
+          });
+        }
       }
     });
   }

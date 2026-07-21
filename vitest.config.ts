@@ -7,7 +7,13 @@ export default defineConfig({
       "@test": path.resolve(__dirname, "test"),
     },
   },
+  server: {
+    watch: {
+      usePolling: true,
+    },
+  },
   test: {
     globals: true,
+    forceRerunTriggers: ["**/src/drizzle/**"],
   },
 });

@@ -11,21 +11,15 @@ export const getMigrationFileNames = async () => {
   const dirNames = await fs.readdir(basePath);
 
   const migrationFileNames = dirNames.map(async (dirName) => {
-    const filePath = path.join(basePath, dirName, "test_seeds");
 
-    const exists = await fs.access(filePath).then(() => true).catch(() => false);
-    if (!exists) {
-      return [];
+    const [testSeeds, testErrors] = await Promise.all([
+      getSqlFileNames(path.join(basePath, dirName, "test_seeds")),
+      getSqlFileNames(path.join(basePath, dirName, "test_errors")),
+    ]);
+    return  {
+      testSeeds,
+      testErrors,
     }
-    const stat = await fs.stat(filePath);
-    if (!stat.isDirectory()) {
-      return [];
-    }
-    const subFileNames = await fs.readdir(filePath);
-
-    return subFileNames
-      .filter((subFileName) => subFileName.endsWith(".sql"))
-      .map((subFileName) => path.join(filePath, subFileName));
   });
 
   const subFilesPaths = await Promise.all(migrationFileNames);
@@ -34,20 +28,44 @@ export const getMigrationFileNames = async () => {
     return {
       name: dirName,
       path: path.join(basePath, dirName, "migration.sql"),
-      filePaths: subFilesPaths[index] || [],
+      testSeeds: subFilesPaths[index]!.testSeeds,
+      testErrors: subFilesPaths[index]!.testErrors,
     };
   });
 };
 
+async function getSqlFileNames(filePath: string) {
+  // const filePath = path.join(basePath, dirName, "test_seeds");
+
+  const exists = await fs
+    .access(filePath)
+    .then(() => true)
+    .catch(() => false);
+  if (!exists) {
+    return [];
+  }
+  const stat = await fs.stat(filePath);
+  if (!stat.isDirectory()) {
+    return [];
+  }
+  const subFileNames = await fs.readdir(filePath);
+
+  return subFileNames
+    .filter((subFileName) => subFileName.endsWith(".sql"))
+    .map((subFileName) => path.join(filePath, subFileName));
+}
 
 export function getMatrix(arr: number[]): (number | null)[][] {
   // Sonuç dizisi: İçinde sayılar veya null barındıran alt diziler tutar
   const result: (number | null)[][] = [];
-  
+
   if (!arr || arr.length === 0) return result;
 
   // currentIndices tipini ve depth tipini belirtiyoruz
-  function generateIndices(currentIndices: (number | null)[], depth: number): void {
+  function generateIndices(
+    currentIndices: (number | null)[],
+    depth: number,
+  ): void {
     if (depth === arr.length) {
       result.push([...currentIndices]);
       return;
@@ -58,7 +76,7 @@ export function getMatrix(arr: number[]): (number | null)[][] {
     for (let i = 0; i < limit; i++) {
       // Değer sayı da olabilir, null da olabilir
       const value: number | null = arr[depth] === 0 ? null : i;
-      
+
       currentIndices.push(value);
       generateIndices(currentIndices, depth + 1);
       currentIndices.pop();
@@ -66,6 +84,21 @@ export function getMatrix(arr: number[]): (number | null)[][] {
   }
 
   generateIndices([], 0);
-  
+
+  return result;
+}
+
+export interface ErrorScenario {
+  migrationIndex: number;
+  errorFileIndex: number;
+}
+
+export function getErrorMatrix(errorCounts: number[]): ErrorScenario[] {
+  const result: ErrorScenario[] = [];
+  for (let i = 0; i < errorCounts.length; i++) {
+    for (let j = 0; j < errorCounts[i]!; j++) {
+      result.push({ migrationIndex: i, errorFileIndex: j });
+    }
+  }
   return result;
 }
