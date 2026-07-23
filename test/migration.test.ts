@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { getMatrix, getErrorMatrix, getMigrationFileNames } from "@test/helper";
+import { getMatrix, getErrorMatrix, getMigrationFileNames } from "./helper";
 import {
   PostgreSqlContainer,
   StartedPostgreSqlContainer,
