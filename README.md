@@ -6,19 +6,19 @@
 
 ```bash
 # Bağımlılıkları yükle
-bun install
+npm install
 
 # Yeni migrasyon oluştur (schema değişikliklerinden)
-bun run db:generate -- <migration_name>
+npx drizzle-kit generate --name <migration_name>
 
 # Boş bir custom migrasyon oluştur
-bun run db:generate:empty -- <migration_name>
+npx drizzle-kit generate --custom --name <migration_name>
 
 # Testleri çalıştır (watch mode)
-bun run test
+npm run test
 
 # Testleri çalıştır (tek seferlik)
-bun run test:run
+npm run test:run
 ```
 
 ## Proje Yapısı
